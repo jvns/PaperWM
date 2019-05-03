@@ -424,8 +424,25 @@ class Space extends Array {
         // transforms break on width 1
         let width = Math.max(1, x - gap);
         this.cloneContainer.width = width;
-        if (width < workArea.width) {
-            this.targetX = workArea.x - this.monitor.x + Math.round((workArea.width - width)/2);
+
+        if (options.auto) {
+            let removeLastFrames = [];
+            if (width < workArea.width) {
+                log(`center`)
+                this.targetX = workArea.x - this.monitor.x + Math.round((workArea.width - width)/2);
+                removeLastFrames = this[0].concat(this[this.length -1]);
+            } else if (width + this.targetX < workArea.width) {
+                log(`right`)
+                this.targetX = workArea.width - this.width;
+                removeLastFrames = this[this.length -1];
+            } else if (this.targetX > 0 ) {
+                log(`left`)
+                this.targetX = workArea.x;
+                removeLastFrames = this[0];
+            }
+            // Invalidate the last position stored on the relevant edge windows
+            for (let w of removeLastFrames)
+                w.lastFrame = undefined;
         }
         if (animate) {
             Tweener.addTween(this.cloneContainer,
@@ -523,7 +540,7 @@ class Space extends Array {
 
         metaWindow.clone.reparent(this.cloneContainer);
 
-        this._populated && this.layout();
+        this._populated && this.layout(true, {auto: true});
         this.emit('window-added', metaWindow, index, row);
         return true;
     }
@@ -560,7 +577,7 @@ class Space extends Array {
         if (actor)
             actor.remove_clip();
 
-        this.layout();
+        this.layout(true, {auto: true});
         if (selected) {
             ensureViewport(selected, this);
         } else {
