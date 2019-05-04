@@ -421,24 +421,32 @@ class Space extends Array {
         }
         this._inLayout = false;
 
+
+        let oldWidth = this.cloneContainer.width;
+        let auto = true;
+        if (this.targetX + oldWidth < workArea.width
+            || this.targetX > 0
+           ) {
+            auto = false;
+        }
+
         // transforms break on width 1
         let width = Math.max(1, x - gap);
         this.cloneContainer.width = width;
 
-        if (options.auto) {
+        if (auto) {
             let removeLastFrames = [];
+            let first = this[0] || [];
+            let last = this[this.length -1] || [];
             if (width < workArea.width) {
-                log(`center`)
                 this.targetX = workArea.x - this.monitor.x + Math.round((workArea.width - width)/2);
-                removeLastFrames = this[0].concat(this[this.length -1]);
+                removeLastFrames = first.concat(last);
             } else if (width + this.targetX < workArea.width) {
-                log(`right`)
-                this.targetX = workArea.width - this.width;
-                removeLastFrames = this[this.length -1];
+                this.targetX = workArea.width - width;
+                removeLastFrames = last;
             } else if (this.targetX > 0 ) {
-                log(`left`)
                 this.targetX = workArea.x;
-                removeLastFrames = this[0];
+                removeLastFrames = first;
             }
             // Invalidate the last position stored on the relevant edge windows
             for (let w of removeLastFrames)
@@ -540,7 +548,9 @@ class Space extends Array {
 
         metaWindow.clone.reparent(this.cloneContainer);
 
-        this._populated && this.layout(true, {auto: true});
+        this._populated && this.layout();
+        if (this.length === 1)
+            centerWindowHorizontally(this.selectedWindow);
         this.emit('window-added', metaWindow, index, row);
         return true;
     }
@@ -577,7 +587,7 @@ class Space extends Array {
         if (actor)
             actor.remove_clip();
 
-        this.layout(true, {auto: true});
+        this.layout();
         if (selected) {
             ensureViewport(selected, this);
         } else {
